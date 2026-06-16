@@ -4,9 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>Jellyfil</title>
-
-
- <script type="text/javascript" src="https://rtk.naturalhabitguide.site/track.js"></script>
+ <script type="text/javascript" src="https://rtk.healthyhabitsguide.site/track.js"></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -448,31 +446,7 @@ src="https://www.facebook.com/tr?id=2363893060683126&ev=PageView&noscript=1"
 <footer class="site-footer">
   <p>Copyright 2026 by Jellyfil Research. All rights reserved.</p>
 </footer>
-
-<script>
-    (function() {
-        function corrigirLinksBuyGoods() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const realSubid = urlParams.get('subid');
-
-            if (!realSubid) return; 
-
-            const botoes = document.querySelectorAll('a[href*="buygoods.com/secure/checkout.html"]');
-            
-            botoes.forEach(function(botao) {
-                let href = botao.getAttribute('href');
-                
-                if (href && !href.includes('&subid=' + realSubid)) {
-                    botao.setAttribute('href', href + '&subid=' + encodeURIComponent(realSubid));
-                }
-            });
-        }
-
-        document.addEventListener("DOMContentLoaded", corrigirLinksBuyGoods);
-        setInterval(corrigirLinksBuyGoods, 1000); // Mantém ativo caso a VTurb mexer depois
-    })();
-    </script>
-
+ 
 <script src="https://untamedpleasure.site/leanpeak/assets/js/pote.js"></script>
 
 </body>
