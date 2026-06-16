@@ -450,39 +450,68 @@ src="https://www.facebook.com/tr?id=2363893060683126&ev=PageView&noscript=1"
 <script src="https://untamedpleasure.site/leanpeak/assets/js/pote.js"></script>
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
+(function () {
   var trackingDomain = "rrbrh.ttrk.io";
   var eventType = "InitiateCheckout";
 
-  if (sessionStorage.getItem("rtk_ic_sent")) return;
-
   function getClickId() {
     var params = new URLSearchParams(window.location.search);
-    // Ordem de prioridade: cid (CartPanda) → rtkcid (RedTrack) → scan 24 chars
-    var cid = params.get("cid") || params.get("rtkcid");
+    var cid = params.get("rtkcid") || params.get("cid");
     if (cid) return cid;
-    for (var [key, value] of params.entries()) {
-      if (value && value.length === 24) return value;
+    // fallback: cookie da RedTrack ou scan de 24 chars
+    var m = document.cookie.match(/rtkclickid-store=([^;]+)/);
+    if (m) return m[1];
+    for (var [k, v] of params.entries()) {
+      if (v && v.length === 24) return v;
     }
     return null;
   }
 
-  var subId = getClickId();
-  if (!subId) {
-    console.warn("[RTK] clickid não encontrado na URL.");
-    return;
+  function sendPostback() {
+    var subId = getClickId();
+    if (!subId) {
+      console.warn("[RTK] clickid não encontrado.");
+      return;
+    }
+    var url =
+      "https://" + trackingDomain + "/postback?clickid=" +
+      encodeURIComponent(subId) + "&type=" + eventType;
+
+    fetch(url, { method: "GET", mode: "no-cors", keepalive: true })
+      .catch(function () { new Image().src = url; });
+    console.log("[RTK] InitiateCheckout enviado:", url);
   }
 
-  var url =
-    "https://" + trackingDomain + "/postback?clickid=" +
-    encodeURIComponent(subId) + "&type=" + eventType;
+  function attachListener(el) {
+    if (el.hasAttribute("data-pb-done")) return;
+    el.setAttribute("data-pb-done", "true");
+    el.addEventListener("click", sendPostback);
+  }
 
-  fetch(url, { method: "GET", mode: "no-cors", keepalive: true })
-    .catch(function () { new Image().src = url; });
+  function init() {
+    var SELECTOR = "a, button[data-href], .smartplayer-click-event";
+    document.querySelectorAll(SELECTOR).forEach(attachListener);
 
-  sessionStorage.setItem("rtk_ic_sent", "1");
-  console.log("[RTK] InitiateCheckout enviado:", url);
-});
+    new MutationObserver(function (mutations) {
+      mutations.forEach(function (mutation) {
+        mutation.addedNodes.forEach(function (node) {
+          if (node.nodeType !== 1) return;
+          if (node.matches && node.matches(SELECTOR)) attachListener(node);
+          if (node.querySelectorAll)
+            node.querySelectorAll(SELECTOR).forEach(attachListener);
+        });
+      });
+    }).observe(document.body, { childList: true, subtree: true });
+
+    console.log("[RTK] listeners anexados");
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
 </script>
 
  
