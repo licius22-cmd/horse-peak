@@ -449,20 +449,18 @@ src="https://www.facebook.com/tr?id=2363893060683126&ev=PageView&noscript=1"
  
 <script src="https://untamedpleasure.site/leanpeak/assets/js/pote.js"></script>
 
- <script>
+<script>
 document.addEventListener("DOMContentLoaded", function () {
   var trackingDomain = "rrbrh.ttrk.io";
   var eventType = "InitiateCheckout";
 
-  // Evita disparo duplicado se a página re-renderizar
   if (sessionStorage.getItem("rtk_ic_sent")) return;
 
   function getClickId() {
     var params = new URLSearchParams(window.location.search);
-    // Primário: cid (CartPanda)
-    var cid = params.get("cid");
+    // Ordem de prioridade: cid (CartPanda) → rtkcid (RedTrack) → scan 24 chars
+    var cid = params.get("cid") || params.get("rtkcid");
     if (cid) return cid;
-    // Fallback: qualquer param de 24 chars (padrão RedTrack)
     for (var [key, value] of params.entries()) {
       if (value && value.length === 24) return value;
     }
@@ -471,7 +469,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   var subId = getClickId();
   if (!subId) {
-    console.warn("[RTK] clickid (cid) não encontrado na URL.");
+    console.warn("[RTK] clickid não encontrado na URL.");
     return;
   }
 
