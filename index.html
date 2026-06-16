@@ -450,101 +450,66 @@ src="https://www.facebook.com/tr?id=2363893060683126&ev=PageView&noscript=1"
 <script src="https://untamedpleasure.site/leanpeak/assets/js/pote.js"></script>
 
 <script>
-(function() {
-    "use strict";
+(function () {
+  var trackingDomain = "rrbrh.ttrk.io";
+  var eventType = "InitiateCheckout";
 
-    // ===== CONFIGURACAO =====
-    var CONFIG = {
-        trackingDomain: "rrbrh.ttrk.io",
-        eventType: "InitiateCheckout",
-        cookieName: "rtkclickid-store",
-        clickParam: "rtkcid",
-        clickPathMatch: "/click",
-        storageKey: "rtk_ic_fired",
-        debug: false
-    };
-    // ========================
-
-    function log(msg) {
-        if (CONFIG.debug) console.log("[RT-IC]", msg);
+  function getClickId() {
+    var params = new URLSearchParams(window.location.search);
+    var cid = params.get("rtkcid") || params.get("cid");
+    if (cid) return cid;
+    var m = document.cookie.match(/rtkclickid-store=([^;]+)/);
+    if (m) return m[1];
+    for (var [k, v] of params.entries()) {
+      if (v && v.length === 24) return v;
     }
+    return null;
+  }
 
-    function getCookie(name) {
-        var match = document.cookie.match(new RegExp("(?:^|;\\s*)" + name + "=([^;]*)"));
-        return match ? decodeURIComponent(match[1]) : null;
+  function sendPostback() {
+    var subId = getClickId();
+    if (!subId) {
+      console.warn("[RTK] clickid não encontrado.");
+      return;
     }
+    var url =
+      "https://" + trackingDomain + "/postback?format=img&clickid=" +
+      encodeURIComponent(subId) + "&type=" + eventType;
 
-    function getClickId() {
-        // 1. Cookie (prioridade)
-        var clickId = getCookie(CONFIG.cookieName);
-        if (clickId) { log("clickId via cookie: " + clickId); return clickId; }
+    var img = new Image();
+    img.src = url;
+    console.log("[RTK] InitiateCheckout enviado:", url);
+  }
 
-        // 2. Parametro na URL
-        try {
-            var params = new URLSearchParams(window.location.search);
-            clickId = params.get(CONFIG.clickParam);
-            if (clickId) { log("clickId via URL: " + clickId); return clickId; }
-        } catch(e) {}
+  function attachListener(el) {
+    if (el.hasAttribute("data-pb-done")) return;
+    el.setAttribute("data-pb-done", "true");
+    el.addEventListener("click", sendPostback);
+  }
 
-        return null;
-    }
+  function init() {
+    var SELECTOR = "a, button";
+    document.querySelectorAll(SELECTOR).forEach(attachListener);
 
-    function isClickLink(url) {
-        try {
-            return new URL(url).pathname.indexOf(CONFIG.clickPathMatch) !== -1;
-        } catch(e) {
-            return false;
-        }
-    }
+    new MutationObserver(function (mutations) {
+      mutations.forEach(function (mutation) {
+        mutation.addedNodes.forEach(function (node) {
+          if (node.nodeType !== 1) return;
+          if (node.matches && node.matches(SELECTOR)) attachListener(node);
+          if (node.querySelectorAll)
+            node.querySelectorAll(SELECTOR).forEach(attachListener);
+        });
+      });
+    }).observe(document.body, { childList: true, subtree: true });
 
-    function alreadyFired(clickId) {
-        try { return sessionStorage.getItem(CONFIG.storageKey) === clickId; }
-        catch(e) { return false; }
-    }
+    console.log("[RTK] listeners anexados");
+  }
 
-    function markFired(clickId) {
-        try { sessionStorage.setItem(CONFIG.storageKey, clickId); }
-        catch(e) {}
-    }
-
-    function firePostback() {
-        var clickId = getClickId();
-        if (!clickId) { log("clickId nao encontrado"); return; }
-        if (alreadyFired(clickId)) { log("ja disparado nesta sessao"); return; }
-
-        var url = "https://" + CONFIG.trackingDomain
-            + "/postback?clickid=" + encodeURIComponent(clickId)
-            + "&type=" + encodeURIComponent(CONFIG.eventType);
-
-        // Usa sendBeacon (mais confiavel em navegacao) com fallback para pixel
-        if (navigator.sendBeacon) {
-            navigator.sendBeacon(url);
-            log("postback via beacon: " + url);
-        } else {
-            var img = new Image();
-            img.src = url;
-            log("postback via pixel: " + url);
-        }
-
-        markFired(clickId);
-    }
-
-    function handleClick(e) {
-        var anchor = e.target.closest ? e.target.closest("a[href]") : null;
-        if (!anchor) return;
-        if (isClickLink(anchor.href)) firePostback();
-    }
-
-    function init() {
-        document.addEventListener("click", handleClick, true);
-        log("inicializado - escutando cliques em links /click");
-    }
-
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", init);
-    } else {
-        init();
-    }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
 })();
 </script>
 
